@@ -160,6 +160,7 @@ int isGridOver()
 				if (j < 3 && D.grid[i][j] == D.grid[i][j + 1])
 					return 0;
 			}
+			else return 0;
 		}
 	}
 	return 1;
