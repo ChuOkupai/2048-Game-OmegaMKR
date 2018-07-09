@@ -134,7 +134,7 @@ void renderSquareValue(Point p, int n)
 		renderCenteredText(D.f3, value, p);
 }
 
-void renderPercentSquare(Rect r, float rounded, int value)
+void renderSquare(Rect r, float rounded, int value)
 {
 	float d;
 	
@@ -145,19 +145,6 @@ void renderPercentSquare(Rect r, float rounded, int value)
 	renderFillCircle(setPoint(r.x + d, r.y + r.h - d), d);
 	renderFillCircle(setPoint(r.x + r.w - d, r.y + r.h - d), d);
 	renderFillCircle(setPoint(r.x + r.w - d, r.y + d), d);
-	if (value > 0)
-		renderSquareValue(setPoint(r.x + D.squareSize / 2, r.y + D.squareSize / 2), value);
-}
-
-void renderSquare(Rect r, int radius, int value)
-{
-	renderFillRectangle(setRect(r.x + D.squareSize / radius, r.y, r.w - 2 * D.squareSize / radius, r.h));
-	renderFillRectangle(setRect(r.x, r.y + D.squareSize / radius, D.squareSize / radius, r.h - 2 * D.squareSize / radius));
-	renderFillRectangle(setRect(r.x + (radius - 1) * D.squareSize / radius, r.y + D.squareSize / radius, r.w - (radius - 1) * D.squareSize / radius, r.h - 2 * D.squareSize / radius));
-	renderFillCircle(setPoint(r.x + D.squareSize / radius, r.y + D.squareSize / radius), D.squareSize / radius);
-	renderFillCircle(setPoint(r.x + D.squareSize / radius, r.y + (radius - 1) * D.squareSize / radius), D.squareSize / radius);
-	renderFillCircle(setPoint(r.x + (radius - 1) * D.squareSize / radius, r.y + D.squareSize / radius), D.squareSize / radius);
-	renderFillCircle(setPoint(r.x + (radius - 1) * D.squareSize / radius, r.y + (radius - 1) * D.squareSize / radius), D.squareSize / radius);
 	if (value > 0)
 		renderSquareValue(setPoint(r.x + D.squareSize / 2, r.y + D.squareSize / 2), value);
 }
@@ -190,7 +177,7 @@ void renderGame()
 	renderClear();
 	if (setRenderColor(setColor(187, 173, 160, 255))) endGame();
 	p = setPoint(D.borderSize.x - D.spaceSize, D.borderSize.y - D.spaceSize);
-	renderPercentSquare(setRect(p.x, p.y, 4 * D.squareSize + 5 * D.spaceSize, 4 * D.squareSize + 5 * D.spaceSize), (D.circleMode) ? 0.25 : 0.03, 0);
+	renderSquare(setRect(p.x, p.y, 4 * D.squareSize + 5 * D.spaceSize, 4 * D.squareSize + 5 * D.spaceSize), (D.circleMode) ? 0.25 : 0.03, 0);
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
@@ -199,7 +186,7 @@ void renderGame()
 				endGame();
 			p.x = D.borderSize.x + D.squareSize * j + D.spaceSize * j;
 			p.y = D.borderSize.y + D.squareSize * i + D.spaceSize * i;
-			renderPercentSquare(setRect(p.x, p.y, D.squareSize, D.squareSize), (D.circleMode) ? 1 : 0.03, D.grid[i][j]);
+			renderSquare(setRect(p.x, p.y, D.squareSize, D.squareSize), (D.circleMode) ? 1 : 0.03, D.grid[i][j]);
 		}
 	}
 }
