@@ -1,12 +1,18 @@
 #include <OmegaMKR.h>
 #include <stdio.h>
 #include <time.h>
+#define RENDER_MODE_SQUARE	1
+#define RENDER_MODE_RSQUARE	2
+#define RENDER_MODE_CIRCLE	3
 
 typedef struct Data
 {
 	int		grid[4][4];
 	int		score;
-	bool	circleMode;
+	bool	addNumber;
+	int		modeCurrent;
+	float	modeBackground;
+	float	modeSquare;
 	int		spaceSize;
 	int		squareSize;
 	Point	borderSize;
@@ -31,6 +37,27 @@ void endGame()
 	end();
 }
 
+void setNewRenderMode()
+{
+	if (D.modeCurrent > 2) D.modeCurrent = 1;
+	else D.modeCurrent++;
+	if (D.modeCurrent == 1)
+	{
+		D.modeBackground = 0;
+		D.modeSquare = 0;
+	}
+	else if (D.modeCurrent == 2)
+	{
+		D.modeBackground = 0.04;
+		D.modeSquare = 0.04;
+	}
+	else
+	{
+		D.modeBackground = 0.25;
+		D.modeSquare = 1;
+	}
+}
+
 void initGame()
 {
 	start();
@@ -38,7 +65,9 @@ void initGame()
 	if (setScreen(500, 500, "2048")) forceExit();
 	SDL_SetWindowMinimumSize(gScreen.window, 400, 400);
 	SDL_SetWindowResizable(gScreen.window, true);
-	D.circleMode = false;
+	D.addNumber = false;
+	D.modeCurrent = 1;
+	setNewRenderMode();
 	D.move = setPoint(0, 0);
 	D.f1 = NULL;
 	D.f2 = NULL;
@@ -64,7 +93,14 @@ void newGrid()
 		l = randi(0, 3);
 	}
 	D.grid[i][j] = (r == 0) ? 4 : 2;
-	D.grid[k][l] = (r >= 20) ? 2 : 4;
+	D.grid[k][l] = (r >= 10) ? 2 : 4;
+}
+
+void newGridEmpty()
+{
+	for (int i = 0; i < 4; i++)
+		for (int j = 0; j < 4; j++)
+			D.grid[i][j] = 0;
 }
 
 void newGridDebug()
@@ -80,6 +116,53 @@ void newGridDebug()
 			n *= 2;
 		}
 	}
+}
+
+void newGridTest1()
+{
+	D.grid[0][0] = 2;
+	D.grid[0][1] = 4;
+	D.grid[0][2] = 0;
+	D.grid[0][3] = 2;
+	D.grid[1][0] = 2;
+	D.grid[1][1] = 0;
+	D.grid[1][2] = 0;
+	D.grid[1][3] = 2;
+	D.grid[2][0] = 0;
+	D.grid[2][1] = 2;
+	D.grid[2][2] = 2;
+	D.grid[2][3] = 2;
+	D.grid[3][0] = 0;
+	D.grid[3][1] = 4;
+	D.grid[3][2] = 2;
+	D.grid[3][3] = 2;
+}
+
+int isGridFull()
+{
+	for (int i = 0; i < 4; i++)
+		for (int j = 0; j < 4; j++)
+			if (! D.grid[i][j]) return 0;
+	return 1;
+}
+
+int isGridOver()
+{
+	if (! isGridFull()) return 0;
+	for (int i = 0; i < 4; i++)
+	{
+		for (int j = 0; j < 4; j++)
+		{
+			if (D.grid[i][j])
+			{
+				if (i < 3 && D.grid[i][j] == D.grid[i + 1][j])
+					return 0;
+				if (j < 3 && D.grid[i][j] == D.grid[i][j + 1])
+					return 0;
+			}
+		}
+	}
+	return 1;
 }
 
 void scaleGame()
@@ -177,7 +260,7 @@ void renderGame()
 	renderClear();
 	if (setRenderColor(setColor(187, 173, 160, 255))) endGame();
 	p = setPoint(D.borderSize.x - D.spaceSize, D.borderSize.y - D.spaceSize);
-	renderSquare(setRect(p.x, p.y, 4 * D.squareSize + 5 * D.spaceSize, 4 * D.squareSize + 5 * D.spaceSize), (D.circleMode) ? 0.25 : 0.03, 0);
+	renderSquare(setRect(p.x, p.y, 4 * D.squareSize + 5 * D.spaceSize, 4 * D.squareSize + 5 * D.spaceSize), D.modeBackground, 0);
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
@@ -186,9 +269,97 @@ void renderGame()
 				endGame();
 			p.x = D.borderSize.x + D.squareSize * j + D.spaceSize * j;
 			p.y = D.borderSize.y + D.squareSize * i + D.spaceSize * i;
-			renderSquare(setRect(p.x, p.y, D.squareSize, D.squareSize), (D.circleMode) ? 1 : 0.03, D.grid[i][j]);
+			renderSquare(setRect(p.x, p.y, D.squareSize, D.squareSize), D.modeSquare, D.grid[i][j]);
 		}
 	}
+}
+
+int addValues(int i1, int j1, int i2, int j2)
+{
+	if (D.grid[i1][j1] || D.grid[i2][j2])
+		D.addNumber = true;
+	D.grid[i1][j1] += D.grid[i2][j2];
+	D.grid[i2][j2] = 0;
+	return D.grid[i1][j1];
+}
+
+void rotateGridX()
+{
+	int i, j, grid[4][4];
+	
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 4; j++)
+			grid[i][3 - j] = D.grid[i][j];
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 4; j++)
+			D.grid[i][j] = grid[i][j];
+}
+
+void rotateGridY()
+{
+	int i, j, grid[4][4];
+	
+	for (j = 0; j < 4; j++)
+		for (i = 0; i < 4; i++)
+			grid[3 - i][j] = D.grid[i][j];
+	for (i = 0; i < 4; i++)
+		for (j = 0; j < 4; j++)
+			D.grid[i][j] = grid[i][j];
+}
+
+void moveGrid(int i, int j)
+{
+	if (i > 3 || j > 3) return;
+	if (D.move.x)
+	{
+		if (! D.grid[i][j])
+			addValues(i, j, i, j + 1);
+		if (j == 2) moveGrid(i + 1, 0);
+		else moveGrid(i, j + 1);
+	}
+	else if (D.move.y)
+	{
+		if (! D.grid[i][j])
+			addValues(i, j, i + 1, j);
+		if (i == 2) moveGrid(0, j + 1);
+		else moveGrid(i + 1, j);
+	}
+}
+
+int assembleGrid(int i, int j)
+{
+	if (i > 3 || j > 3) return 0;
+	int n;
+	
+	n = 0;
+	if (D.move.x)
+	{
+		if (D.grid[i][j] == D.grid[i][j + 1])
+			n += addValues(i, j, i, j + 1);
+		if (j == 2) n += assembleGrid(i + 1, 0);
+		else n += assembleGrid(i, j + 1);
+	}
+	else if (D.move.y)
+	{
+		if (D.grid[i][j] == D.grid[i + 1][j])
+			n += addValues(i, j, i + 1, j);
+		if (i == 2) n += assembleGrid(0, j + 1);
+		else n += assembleGrid(i + 1, j);
+	}
+	return n;
+}
+
+void updateGrid()
+{
+	if (D.move.x == 0 && D.move.y == 0) return;
+	if (D.move.x > 0) rotateGridX();
+	else if (D.move.y < 0) rotateGridY();
+	moveGrid(0, 0);
+	moveGrid(0, 0);
+	D.score += assembleGrid(0, 0);
+	moveGrid(0, 0);
+	if (D.move.x > 0) rotateGridX();
+	else if (D.move.y < 0) rotateGridY();
 }
 
 int checkEvent()
@@ -220,7 +391,7 @@ int checkEvent()
 					else
 						D.move.y = 0;
 					if (e.key.keysym.sym == KEY_C)
-						D.circleMode = (D.circleMode) ? false : true;
+						setNewRenderMode();
 					if (e.key.keysym.sym == KEY_ESCAPE)
 						return 1;
 				}
@@ -235,16 +406,35 @@ int checkEvent()
 	return 0;
 }
 
+void addRandomNumberOnGrid()
+{
+	int i, j;
+	
+	i = randi(0, 3);
+	j = randi(0, 3);
+	while (D.grid[i][j])
+	{
+		i = randi(0, 3);
+		j = randi(0, 3);
+	}
+	D.grid[i][j] = (randi(0,99) < 10) ? 4 : 2;
+	D.addNumber = false;
+}
+
 void startGame()
 {
-	newGrid();
-	//newGridDebug();
+	newGridTest1();
 	scaleGame();
 	while (1)
 	{
 		renderGame();
 		renderSyncedScreen(20);
+		if (isGridOver())
+			break;
 		if (checkEvent()) break;
+		updateGrid();
+		if (! isGridFull() && D.addNumber)
+			addRandomNumberOnGrid();
 	}
 }
 
