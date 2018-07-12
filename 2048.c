@@ -1,25 +1,30 @@
 #include <OmegaMKR.h>
 #include <stdio.h>
 #include <time.h>
-#define RENDER_MODE_SQUARE	1
-#define RENDER_MODE_RSQUARE	2
-#define RENDER_MODE_CIRCLE	3
+#define RMODE_SQUARE	1
+#define RMODE_RSQUARE	2
+#define RMODE_CIRCLE	3
+
+typedef struct RenderMode
+{
+	int		current;
+	float	background;
+	float	square;
+}	RenderMode;
 
 typedef struct Data
 {
-	int		grid[4][4];
-	int		score;
-	bool	addNumber;
-	int		modeCurrent;
-	float	modeBackground;
-	float	modeSquare;
-	int		spaceSize;
-	int		squareSize;
-	Point	borderSize;
-	Point	move;
-	Font	*f1;
-	Font	*f2;
-	Font	*f3;
+	int			grid[4][4];
+	int			score;
+	bool		addNumber;
+	RenderMode	rMode;
+	int			spaceSize;
+	int			squareSize;
+	Point		borderSize;
+	Point		move;
+	Font		*f1;
+	Font		*f2;
+	Font		*f3;
 }	Data;
 
 Data D;
@@ -39,22 +44,22 @@ void endGame()
 
 void setNewRenderMode()
 {
-	if (D.modeCurrent > 2) D.modeCurrent = 1;
-	else D.modeCurrent++;
-	if (D.modeCurrent == 1)
+	if (D.rMode.current > 2) D.rMode.current = 1;
+	else D.rMode.current++;
+	if (D.rMode.current == RMODE_SQUARE)
 	{
-		D.modeBackground = 0;
-		D.modeSquare = 0;
+		D.rMode.background = 0;
+		D.rMode.square = 0;
 	}
-	else if (D.modeCurrent == 2)
+	else if (D.rMode.current == RMODE_RSQUARE)
 	{
-		D.modeBackground = 0.04;
-		D.modeSquare = 0.04;
+		D.rMode.background = 0.04;
+		D.rMode.square = 0.04;
 	}
 	else
 	{
-		D.modeBackground = 0.25;
-		D.modeSquare = 1;
+		D.rMode.background = 0.25;
+		D.rMode.square = 1;
 	}
 }
 
@@ -66,13 +71,12 @@ void initGame()
 	SDL_SetWindowMinimumSize(gScreen.window, 400, 400);
 	SDL_SetWindowResizable(gScreen.window, true);
 	D.addNumber = false;
-	D.modeCurrent = 1;
+	D.rMode.current = 1;
 	setNewRenderMode();
 	D.move = setPoint(0, 0);
 	D.f1 = NULL;
 	D.f2 = NULL;
 	D.f3 = NULL;
-	renderSplashScreen();
 }
 
 void newGrid()
@@ -261,7 +265,7 @@ void renderGame()
 	renderClear();
 	if (setRenderColor(setColor(187, 173, 160, 255))) endGame();
 	p = setPoint(D.borderSize.x - D.spaceSize, D.borderSize.y - D.spaceSize);
-	renderSquare(setRect(p.x, p.y, 4 * D.squareSize + 5 * D.spaceSize, 4 * D.squareSize + 5 * D.spaceSize), D.modeBackground, 0);
+	renderSquare(setRect(p.x, p.y, 4 * D.squareSize + 5 * D.spaceSize, 4 * D.squareSize + 5 * D.spaceSize), D.rMode.background, 0);
 	for (int i = 0; i < 4; i++)
 	{
 		for (int j = 0; j < 4; j++)
@@ -270,7 +274,7 @@ void renderGame()
 				endGame();
 			p.x = D.borderSize.x + D.squareSize * j + D.spaceSize * j;
 			p.y = D.borderSize.y + D.squareSize * i + D.spaceSize * i;
-			renderSquare(setRect(p.x, p.y, D.squareSize, D.squareSize), D.modeSquare, D.grid[i][j]);
+			renderSquare(setRect(p.x, p.y, D.squareSize, D.squareSize), D.rMode.square, D.grid[i][j]);
 		}
 	}
 }
@@ -367,42 +371,36 @@ int checkEvent()
 {
 	Event e;
 	
-	while (SDL_PollEvent(&e))
+	SDL_WaitEvent(&e);
+	switch (e.type)
 	{
-		switch (e.type)
-		{
-			case SDL_QUIT:
+		case SDL_QUIT:
+			return 1;
+		case SDL_KEYUP:
+			D.move = setPoint(0, 0);
+			break;
+		case SDL_KEYDOWN:
+			if (e.key.keysym.sym == KEY_LEFT)
+				D.move.x = -1;
+			else if (e.key.keysym.sym == KEY_RIGHT)
+				D.move.x = 1;
+			else
+				D.move.x = 0;
+			if (e.key.keysym.sym == KEY_DOWN)
+				D.move.y = -1;
+			else if (e.key.keysym.sym == KEY_UP)
+				D.move.y = 1;
+			else
+				D.move.y = 0;
+			if (e.key.keysym.sym == KEY_C)
+				setNewRenderMode();
+			if (e.key.keysym.sym == KEY_ESCAPE)
 				return 1;
-			case SDL_KEYUP:
-				D.move = setPoint(0, 0);
-				break;
-			case SDL_KEYDOWN:
-				if (! e.key.repeat)
-				{
-					if (e.key.keysym.sym == KEY_LEFT)
-						D.move.x = -1;
-					else if (e.key.keysym.sym == KEY_RIGHT)
-						D.move.x = 1;
-					else
-						D.move.x = 0;
-					if (e.key.keysym.sym == KEY_DOWN)
-						D.move.y = -1;
-					else if (e.key.keysym.sym == KEY_UP)
-						D.move.y = 1;
-					else
-						D.move.y = 0;
-					if (e.key.keysym.sym == KEY_C)
-						setNewRenderMode();
-					if (e.key.keysym.sym == KEY_ESCAPE)
-						return 1;
-				}
-				else D.move = setPoint(0, 0);
-				break;
-			case SDL_WINDOWEVENT:
-				if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
-					scaleGame();
-				break;
-		}
+			break;
+		case SDL_WINDOWEVENT:
+			if (e.window.event == SDL_WINDOWEVENT_SIZE_CHANGED)
+				scaleGame();
+			break;
 	}
 	return 0;
 }
@@ -429,7 +427,7 @@ void startGame()
 	while (1)
 	{
 		renderGame();
-		renderSyncedScreen(20);
+		renderScreen();
 		if (isGridOver())
 			break;
 		if (checkEvent()) break;
