@@ -1,20 +1,24 @@
-OS_NAME := $(shell uname)
-ifeq ($(OS_NAME), Darwin)
-		SDL_INC := -I"/Library/Frameworks/SDL2.framework/Versions/A/Headers" -I"/Library/Frameworks/SDL2_ttf.framework/Versions/A/Headers"
-		SDL_LIB := -framework SDL2 -framework SDL2_ttf
-else
-		SDL_INC := -I"/usr/include/SDL2"
-		SDL_LIB := -lSDL2 -lSDL2_ttf
+SRC=2048
+CC=gcc
+CFLAGS=-O3 -Wall -Wextra -I/usr/include/OmegaMKR
+LDFLAGS=-lOmegaMKR
+OS:=$(shell uname -s)
+ifeq ($(OS),Darwin)
+	CFLAGS:=$(CFLAGS) -I/Library/Frameworks/SDL2.framework/Versions/A/Headers -I/Library/Frameworks/SDL2_ttf.framework/Versions/A/Headers
+	LDFLAGS:=$(LDFLAGS) -framework SDL2 -framework SDL2_ttf
+else ifeq ($(OS),Linux)
+	CFLAGS:=$(CFLAGS) -I/usr/include/SDL2
+	LDFLAGS=-lSDL2 -lSDL2_ttf
 endif
-GAME_NAME := 2048.out
+BINEXT=out
 
 all: clean build run
 
 clean:
-	sudo rm -f $(GAME_NAME)
-	
+	sudo rm -f $(SRC).$(BINEXT)
+
 build:
-	gcc -Wall -I"/usr/include/OmegaMKR" $(SDL_INC) 2048.c -o $(GAME_NAME) -lOmegaMKR $(SDL_LIB)
+	$(CC) $(CFLAGS) $(SRC).c -o $(SRC).$(BINEXT) $(LDFLAGS)
 
 run:
-	./2048.out
+	./$(SRC).$(BINEXT)
